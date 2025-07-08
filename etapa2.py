@@ -63,11 +63,12 @@ fig_hist.suptitle('Distribución de variables de consumo')
 fig_hist.tight_layout()
 
 # 7. Boxplots para ver valores atípicos y rangos
-plt.figure(figsize=(10, 5))
-df[['Global_active_power', 'Sub_metering_1', 'Sub_metering_2', 'Sub_metering_3']].plot(kind='box')
-plt.title('Comparación de submedidores (boxplot)')
-plt.grid(True)
-
+fig_box, ax_box = plt.subplots(figsize=(10, 5))
+df[['Global_active_power', 'Sub_metering_1', 'Sub_metering_2', 'Sub_metering_3']].plot(
+    kind='box', ax=ax_box
+)
+ax_box.set_title('Comparación de submedidores (boxplot)')
+ax_box.grid(True)
 # 8. Mapa de calor: consumo promedio por hora según el día de la semana
 df['hour'] = df.index.hour
 df['dayofweek'] = df.index.dayofweek  # 0 = lunes, 6 = domingo
