@@ -41,6 +41,12 @@ plt.suptitle("Histogramas del consumo")
 plt.tight_layout()
 plt.show()
 
+# 7. Boxplots
+df[['Global_active_power', 'Sub_metering_1', 'Sub_metering_2', 'Sub_metering_3']].plot(kind='box', figsize=(10, 6))
+plt.title("Boxplot del consumo por submedidor")
+plt.grid(True)
+plt.show()
+
 
 
 
