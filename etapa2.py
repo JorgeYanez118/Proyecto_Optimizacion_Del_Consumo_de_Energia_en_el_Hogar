@@ -69,7 +69,16 @@ sns.heatmap(correlation, annot=True, cmap='coolwarm')
 plt.title("Matriz de correlación entre variables")
 plt.show()
 
+# 10. Top 10 horas con mayor consumo promedio
+top_consumo = df['Global_active_power'].resample('H').mean().sort_values(ascending=False).head(10)
 
+print("\n Top 10 horas con mayor consumo (promedio por hora):")
+print(top_consumo)
+
+top_consumo.plot(kind='bar', figsize=(10, 5), title='Top 10 horas con mayor consumo promedio')
+plt.ylabel('kW promedio por hora')
+plt.grid(True)
+plt.show()
 
 
 
