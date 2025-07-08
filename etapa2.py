@@ -35,6 +35,12 @@ plt.xlabel('Fecha y Hora')
 plt.grid(True)
 plt.show()
 
+# 6. Histogramas
+df[['Global_active_power', 'Sub_metering_1', 'Sub_metering_2', 'Sub_metering_3']].hist(bins=50, figsize=(10, 6))
+plt.suptitle("Histogramas del consumo")
+plt.tight_layout()
+plt.show()
+
 
 
 
