@@ -14,3 +14,12 @@ for i in range(1, 11):
 
 df = pd.concat(partes, ignore_index=True)
 
+# 2. Procesar columna Datetime y convertir a índice
+df['Datetime'] = pd.to_datetime(df['Datetime'])
+df.set_index('Datetime', inplace=True)
+
+# 3. Convertir columnas a numérico (en caso de errores)
+for col in df.columns:
+    df[col] = pd.to_numeric(df[col], errors='coerce')
+
+
