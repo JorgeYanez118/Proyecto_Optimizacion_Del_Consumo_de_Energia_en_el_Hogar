@@ -15,7 +15,7 @@ plt.rcParams.update({'figure.max_open_warning': 0})
 # 1. Cargar todos los archivos de datos y unirlos en un solo DataFrame
 partes = []
 for i in range(1, 11):
-    nombre_archivo = f"datos_limpios_parte_{i}.txt"
+    nombre_archivo = f"Datos/datos_limpios_parte_{i}.txt"
     if os.path.exists(nombre_archivo):
         df_parte = pd.read_csv(nombre_archivo, sep=';')
         partes.append(df_parte)
