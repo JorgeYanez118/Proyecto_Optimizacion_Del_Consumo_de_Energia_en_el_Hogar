@@ -47,6 +47,19 @@ plt.title("Boxplot del consumo por submedidor")
 plt.grid(True)
 plt.show()
 
+# 8. Mapa de calor hora vs día
+df['hour'] = df.index.hour
+df['dayofweek'] = df.index.dayofweek
+
+pivot = df.pivot_table(index='dayofweek', columns='hour', values='Global_active_power', aggfunc='mean')
+
+plt.figure(figsize=(12, 6))
+sns.heatmap(pivot, cmap='YlGnBu', linewidths=0.5)
+plt.title("Mapa de calor: consumo promedio por hora y día de la semana")
+plt.xlabel("Hora del día")
+plt.ylabel("Día de la semana (0 = Lunes)")
+plt.show()
+
 
 
 
