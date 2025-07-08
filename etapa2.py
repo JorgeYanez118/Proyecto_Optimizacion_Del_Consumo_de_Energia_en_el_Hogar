@@ -61,5 +61,15 @@ plt.ylabel("Día de la semana (0 = Lunes)")
 plt.show()
 
 
+# 9. Matriz de correlación
+correlation = df[['Global_active_power', 'Sub_metering_1', 'Sub_metering_2', 'Sub_metering_3']].corr()
+
+plt.figure(figsize=(8, 6))
+sns.heatmap(correlation, annot=True, cmap='coolwarm')
+plt.title("Matriz de correlación entre variables")
+plt.show()
+
+
+
 
 
