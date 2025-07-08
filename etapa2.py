@@ -22,4 +22,19 @@ df.set_index('Datetime', inplace=True)
 for col in df.columns:
     df[col] = pd.to_numeric(df[col], errors='coerce')
 
+# 4. Estadísticas Descriptivas
+print("Estadísticas descriptivas:")
+print(df.describe()[['Global_active_power', 'Sub_metering_1', 'Sub_metering_2', 'Sub_metering_3']])
+
+# 5. Visualización del Consumo Global en el tiempo
+plt.figure(figsize=(15, 5))
+df['Global_active_power'].plot()
+plt.title('Consumo Global Activo (kW)')
+plt.ylabel('kW')
+plt.xlabel('Fecha y Hora')
+plt.grid(True)
+plt.show()
+
+
+
 
