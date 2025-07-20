@@ -6,6 +6,8 @@ from sklearn.preprocessing import PolynomialFeatures
 import os
 from dateutil.rrule import rrule, MONTHLY
 from datetime import datetime
+from sklearn.metrics import mean_squared_error
+from scipy.signal import find_peaks
 
 # Unir los archivos de datos limpios en uno solo
 partes = []
@@ -29,6 +31,8 @@ df['Datetime'] = pd.to_datetime(df['Datetime'])
 df.set_index('Datetime', inplace=True)
 
 rango_meses = list(rrule(freq=MONTHLY, dtstart=datetime(2006, 12, 16), until=datetime(2010, 11, 26)))
+
+resultados = []
 
 for fecha in rango_meses:
     mes_str = fecha.strftime('%Y-%m')
@@ -58,7 +62,38 @@ for fecha in rango_meses:
     X_poly = poly.fit_transform(X)
     modelo = LinearRegression()
     modelo.fit(X_poly, y)
+    # Evaluar predicciones
     y_pred = modelo.predict(X_poly)
+    mse = mean_squared_error(y, y_pred)
+
+    # Extraer coeficientes
+    coef = modelo.coef_
+    intercept = modelo.intercept_
+
+    # Crear polinomio y derivada
+    p = np.poly1d([coef[3], coef[2], coef[1], intercept])
+    dp = p.deriv()
+
+    # Evaluar derivada
+    ts_values = df_mes['ts'].values
+    y_deriv = dp(ts_values)
+
+    # Identificar picos en derivada (ajustar el umbral si es necesario)
+    umbral = np.percentile(np.abs(y_deriv), 90)  # o prueba con un valor fijo como 5
+    peaks_pos, _ = find_peaks(y_deriv, height=umbral)
+    peaks_neg, _ = find_peaks(-y_deriv, height=umbral)
+
+    # Guardar resultados
+    resultados.append({
+        'mes': mes_str,
+        'intercepto': intercept,
+        'coef_x1': coef[1],
+        'coef_x2': coef[2],
+        'coef_x3': coef[3],
+        'mse': mse,
+        'num_picos_positivos': len(peaks_pos),
+        'num_picos_negativos': len(peaks_neg)
+    })
 
     # Graficar ajuste
     plt.figure(figsize=(10, 4))
@@ -70,3 +105,7 @@ for fecha in rango_meses:
     plt.grid(True)
     plt.legend()
     plt.show()
+    
+df_resultados = pd.DataFrame(resultados)
+df_resultados.to_csv('resultados_modelos_mensuales.csv', index=False)
+print(df_resultados.head())
