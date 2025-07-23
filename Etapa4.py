@@ -100,3 +100,63 @@ meses_por_cluster = df_clustering[['mes', 'cluster']].sort_values('cluster')
 print(meses_por_cluster.to_string(index=False))
 
 print(cluster_patterns)
+
+df_resultados = pd.read_csv('Etapa3/resultados_modelos_mensuales.csv')
+df_resultados['cluster'] = df_clustering['cluster']
+
+centroide_eficiente = cluster_patterns.loc[1]
+
+df_resultados['delta_mse'] = 0.0
+df_resultados['delta_picos_pos'] = 0.0
+df_resultados['delta_picos_neg'] = 0.0
+
+for idx, row in df_resultados.iterrows():
+    if row['cluster'] != 1:
+        df_resultados.at[idx, 'delta_mse'] = row['mse'] - centroide_eficiente['mse']
+        df_resultados.at[idx, 'delta_picos_pos'] = row['num_picos_positivos'] - centroide_eficiente['num_picos_positivos']
+        df_resultados.at[idx, 'delta_picos_neg'] = row['num_picos_negativos'] - centroide_eficiente['num_picos_negativos']
+        
+mejora_mse = df_resultados['delta_mse'].sum()
+mejora_picos_pos = df_resultados['delta_picos_pos'].sum()
+mejora_picos_neg = df_resultados['delta_picos_neg'].sum()
+
+print(f"Mejora total en MSE: {mejora_mse: .4f}")
+print(f"Mejora total en Picos Positivos: {mejora_picos_pos: .4f}")
+print(f"Mejora total en Picos Negativos: {mejora_picos_neg: .4f}")
+
+total_mse_original = df_resultados['mse'].sum()
+total_picos_pos_original = df_resultados['num_picos_positivos'].sum()
+total_picos_neg_original = df_resultados['num_picos_negativos'].sum()
+
+porcentaje_mejora_mse = (mejora_mse / total_mse_original) * 100
+porcentaje_mejora_pos = (mejora_picos_pos / total_picos_pos_original) * 100
+porcentaje_mejora_neg = (mejora_picos_neg / total_picos_neg_original) * 100
+
+print("Valores originales:")
+print(f"MSE total original: {total_mse_original:.2f}")
+print(f"Picos positivos totales: {total_picos_pos_original:.2f}")
+print(f"Picos negativos totales: {total_picos_neg_original:.2f}")
+
+print("\nPorcentajes de mejora:")
+print(f"MSE: {porcentaje_mejora_mse:.2f}%")
+print(f"Picos positivos: {porcentaje_mejora_pos:.2f}%")
+print(f"Picos negativos: {porcentaje_mejora_neg:.2f}%")
+
+
+labels = ['MSE', 'Picos Positivos', 'Picos Negativos']
+totales = [total_mse_original, total_picos_pos_original, total_picos_neg_original]
+mejoras = [mejora_mse, mejora_picos_pos, mejora_picos_neg]
+
+x = range(len(labels))
+ancho = 0.35
+
+plt.figure(figsize=(10, 6))
+plt.bar(x, totales, width=ancho, label='Total Original')
+plt.bar([i + ancho for i in x], mejoras, width=ancho, label='Mejora Potencial')
+plt.xticks([i + ancho / 2 for i in x], labels)
+plt.ylabel('Valor')
+plt.title('Comparación entre Totales Originales y Mejoras Potenciales')
+plt.legend()
+plt.grid(True, axis='y')
+plt.tight_layout()
+plt.show()
