@@ -160,3 +160,5 @@ plt.legend()
 plt.grid(True, axis='y')
 plt.tight_layout()
 plt.show()
+
+df_resultados.to_csv('Etapa3/resultados_modelos_mensuales.csv', index=False)
