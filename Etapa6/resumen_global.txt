@@ -1,0 +1,7 @@
+===== RESUMEN GLOBAL =====
+alpha_prom               : 0.160039
+max_peak_reduction_% mean: 16.003901
+max_reduction_% mean     : 4.679366
+energy_diff_% mean       : -0.000000
+% meses mejora pico      : 93.62%
+% meses peor max global  : 40.43%
