@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from typing import Tuple, List, Dict
 
+# --- Parámetros globales de configuración ---
 RANGO_PARTES = range(1, 21)
 PATH_ARCHIVOS = "Datos/datos_limpios_parte_{i}.txt"
 
@@ -26,6 +27,16 @@ GRAFICAR_X_MES       = False
 SALIDA_DIR = "Etapa5"
 
 def cargar_partes(path_pattern: str, r_parts: range) -> pd.DataFrame:
+    """
+    Carga y concatena múltiples archivos de texto con datos limpios.
+
+    Parameters:
+        path_pattern (str): Patrón de ruta con formato para el índice.
+        r_parts (range): Rango de partes a cargar.
+
+    Returns:
+        pd.DataFrame: DataFrame combinado con todos los datos cargados.
+    """
     partes = []
     for i in r_parts:
         path = path_pattern.format(i=i)
@@ -38,12 +49,24 @@ def cargar_partes(path_pattern: str, r_parts: range) -> pd.DataFrame:
         raise FileNotFoundError("No se encontraron archivos de datos limpios.")
     return pd.concat(partes, ignore_index=True)
 
-
 def preparar_series_horarias(df: pd.DataFrame,
                              datetime_col: str,
                              value_col: str,
                              agg: str = "mean",
                              freq: str = "H") -> pd.Series:
+    """
+    Convierte un DataFrame con columnas de fecha y consumo a una serie horaria agregada.
+
+    Parameters:
+        df (pd.DataFrame): Datos de entrada.
+        datetime_col (str): Nombre de la columna de tiempo.
+        value_col (str): Columna del valor de consumo.
+        agg (str): Tipo de agregación ("mean" o "sum").
+        freq (str): Frecuencia de remuestreo (e.g., 'H' para hora).
+
+    Returns:
+        pd.Series: Serie temporal horaria.
+    """
     df[datetime_col] = pd.to_datetime(df[datetime_col])
     df = df.set_index(datetime_col).sort_index()
     df[value_col] = pd.to_numeric(df[value_col], errors='coerce').interpolate('linear')
@@ -55,20 +78,49 @@ def preparar_series_horarias(df: pd.DataFrame,
 
     return x.dropna()
 
-
 def detectar_horas_pico(x_hourly: pd.Series, n_peak: int = 5) -> List[int]:
+    """
+    Detecta las n horas con mayor promedio de consumo.
+
+    Parameters:
+        x_hourly (pd.Series): Serie temporal horaria.
+        n_peak (int): Número de horas pico a identificar.
+
+    Returns:
+        List[int]: Lista de horas pico.
+    """
     consumo_hora = x_hourly.groupby(x_hourly.index.hour).mean()
     return consumo_hora.sort_values(ascending=False).head(n_peak).index.tolist()
 
-
 def split_peak_offpeak(x: pd.Series, peak_hours: List[int]) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Separa la serie temporal entre horas pico y fuera de pico.
+
+    Parameters:
+        x (pd.Series): Serie temporal.
+        peak_hours (List[int]): Lista de horas consideradas pico.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: Máscaras booleanas para horas pico y no pico.
+    """
     hours = x.index.hour
     mask_peak = np.isin(hours, peak_hours)
     return mask_peak, ~mask_peak
 
-
 def estimar_lambda(x_hourly: pd.Series, peak_hours: List[int],
                    lam_min: float = 0.5, lam_max: float = 5.0) -> float:
+    """
+    Estima el parámetro lambda como la razón entre el consumo pico y no pico.
+
+    Parameters:
+        x_hourly (pd.Series): Serie horaria.
+        peak_hours (List[int]): Horas pico.
+        lam_min (float): Límite inferior.
+        lam_max (float): Límite superior.
+
+    Returns:
+        float: Valor de lambda limitado por los extremos definidos.
+    """
     mask_peak, mask_off = split_peak_offpeak(x_hourly, peak_hours)
     mean_peak = x_hourly[mask_peak].mean()
     mean_off  = x_hourly[mask_off].mean()
@@ -78,16 +130,33 @@ def estimar_lambda(x_hourly: pd.Series, peak_hours: List[int],
         lam = mean_peak / mean_off
     return float(np.clip(lam, lam_min, lam_max))
 
-
 def objective(alpha: float, x: np.ndarray, P: np.ndarray, O: np.ndarray, lam: float = 1.0) -> float:
+    """
+    Función objetivo para minimizar el consumo en horas pico.
+
+    Parameters:
+        alpha (float): Parámetro de redistribución.
+        x (np.ndarray): Serie de consumo.
+        P (np.ndarray): Índices de horas pico.
+        O (np.ndarray): Índices de horas no pico.
+        lam (float): Parámetro lambda.
+
+    Returns:
+        float: Valor de la función objetivo.
+    """
     xP = x[P]
     xO = x[O]
     S1_P = xP.sum()
     nO = xO.size
     return (((1 - alpha) * xP) ** 2).sum() + lam * (((xO + alpha * S1_P / nO) ** 2).sum())
 
-
 def derivatives(alpha: float, x: np.ndarray, P: np.ndarray, O: np.ndarray, lam: float = 1.0) -> Tuple[float, float]:
+    """
+    Calcula derivada y derivada segunda de la función objetivo.
+
+    Returns:
+        Tuple[float, float]: Primer y segundo derivadas.
+    """
     xP = x[P]
     xO = x[O]
     S2_P = np.sum(xP ** 2)
@@ -98,10 +167,15 @@ def derivatives(alpha: float, x: np.ndarray, P: np.ndarray, O: np.ndarray, lam: 
     fsecond =  2 * S2_P + 2 * lam * (S1_P**2 / nO)
     return fprime, fsecond
 
-
 def newton_raphson_alpha(x: np.ndarray, P: np.ndarray, O: np.ndarray, lam: float = 1.0,
                          alpha0: float = 0.2, tol: float = 1e-8, max_iter: int = 50,
                          clip: Tuple[float, float] = (0.0, 1.0)):
+    """
+    Optimiza alpha con el método de Newton-Raphson.
+
+    Returns:
+        Tuple[float, int, float]: alpha óptimo, iteraciones, valor objetivo.
+    """
     alpha = alpha0
     for k in range(max_iter):
         fprime, fsecond = derivatives(alpha, x, P, O, lam)
@@ -112,11 +186,16 @@ def newton_raphson_alpha(x: np.ndarray, P: np.ndarray, O: np.ndarray, lam: float
         alpha = new_alpha
     return alpha, max_iter, objective(alpha, x, P, O, lam)
 
-
 def fixed_point_alpha_adaptive(x: np.ndarray, P: np.ndarray, O: np.ndarray, lam: float = 1.0,
                                alpha0: float = 0.2, mu0: float = 1e-3, tol: float = 1e-8,
                                max_iter: int = 5000, clip: Tuple[float, float] = (0.0, 1.0),
                                mu_min: float = 1e-7, backtrack: float = 0.5):
+    """
+    Optimiza alpha usando punto fijo con paso adaptativo.
+
+    Returns:
+        Tuple[float, int, float, float]: alpha óptimo, iteraciones, valor objetivo, mu final.
+    """
     alpha = alpha0
     mu = mu0
     f_prev = objective(alpha, x, P, O, lam)
@@ -126,20 +205,24 @@ def fixed_point_alpha_adaptive(x: np.ndarray, P: np.ndarray, O: np.ndarray, lam:
         trial_alpha = np.clip(alpha - mu * fprime, clip[0], clip[1])
         f_trial = objective(trial_alpha, x, P, O, lam)
 
-        if f_trial <= f_prev:  # mejora
+        if f_trial <= f_prev:
             if abs(trial_alpha - alpha) < tol:
                 return trial_alpha, k + 1, f_trial, mu
             alpha, f_prev = trial_alpha, f_trial
         else:
-            # backtracking
             mu *= backtrack
             if mu < mu_min:
                 return alpha, k + 1, f_prev, mu
 
     return alpha, max_iter, f_prev, mu
 
-
 def apply_alpha(x: pd.Series, alpha: float, mask_peak: np.ndarray) -> pd.Series:
+    """
+    Aplica la redistribución al consumo usando alpha.
+
+    Returns:
+        pd.Series: Serie optimizada.
+    """
     x_arr = x.values.copy()
     xP = x_arr[mask_peak]
     xO_mask = ~mask_peak
@@ -154,12 +237,16 @@ def apply_alpha(x: pd.Series, alpha: float, mask_peak: np.ndarray) -> pd.Series:
     return pd.Series(x_arr, index=x.index, name="optimizado")
 
 def metrics_before_after(x: pd.Series, x_opt: pd.Series, mask_peak: np.ndarray) -> Dict[str, float]:
+    """
+    Calcula métricas comparativas entre las series original y optimizada.
+
+    Returns:
+        Dict[str, float]: Métricas de reducción de pico y consumo.
+    """
     max_before = x.max()
     max_after  = x_opt.max()
-
     max_peak_before = x[mask_peak].max() if mask_peak.any() else np.nan
     max_peak_after  = x_opt[mask_peak].max() if mask_peak.any() else np.nan
-
     energy_before = x.sum()
     energy_after  = x_opt.sum()
 
@@ -178,8 +265,10 @@ def metrics_before_after(x: pd.Series, x_opt: pd.Series, mask_peak: np.ndarray) 
         "energy_diff_%": 100 * (energy_after - energy_before) / energy_before if energy_before > 0 else 0.0
     }
 
-
 def plot_before_after(x: pd.Series, x_opt: pd.Series, title_extra=""):
+    """
+    Grafica la serie original y optimizada para comparación visual.
+    """
     plt.figure(figsize=(14, 4))
     plt.plot(x.index, x.values, label="Original")
     plt.plot(x_opt.index, x_opt.values, label="Optimizado", linestyle="--")
@@ -189,7 +278,6 @@ def plot_before_after(x: pd.Series, x_opt: pd.Series, title_extra=""):
     plt.legend()
     plt.tight_layout()
     plt.show()
-
 
 if __name__ == "__main__":
     os.makedirs(SALIDA_DIR, exist_ok=True)
